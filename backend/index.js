@@ -50,6 +50,22 @@ io.on('connection' ,(socket) => {
         io.to(roomId).emit('update-game',{lines,scores,roomId,turn:turnName})
     })
 
+    socket.on("game-completed",({winner,scores,roomId}) => {
+        const room = rooms.filter((room) => room.roomId == roomId)[0]
+        const winnerPlayer = room.players.filter((player) => {
+            return player.userName == winner
+        })[0]
+        console.log(winnerPlayer)
+
+        io.to(winnerPlayer.id).emit('won',{message:"Congratulations..!! won the game"})
+
+        room.players.forEach((player) => {
+            if(player.userName != winner){
+                io.to(player.id).emit('lose',{scores,message:"You Lose The Match"})
+            }
+        })
+    })
+
 })
 
 
