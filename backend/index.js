@@ -59,11 +59,11 @@ io.on('connection' ,(socket) => {
 
         io.to(winnerPlayer.id).emit('won',{message:"Congratulations..!! won the game"})
 
-        room.players.forEach((player) => {
-            if(player.userName != winner){
-                io.to(player.id).emit('lose',{scores,message:"You Lose The Match"})
-            }
-        })
+        const looser = room.players.filter((player) => {
+            return player.userName != winner;
+        })[0]
+
+        io.to(looser.id).emit('lose',{message:"Sorry You Lose!!"})
     })
 
 })
