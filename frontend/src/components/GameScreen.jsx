@@ -1,26 +1,38 @@
 import React, { useEffect, useState } from "react";
 import { socket } from "../socket";
+import { useNavigate } from "react-router";
 
-const GRID_SIZE = 5; // Number of rows and columns (5x5 grid)
+const GRID_SIZE = 2; // Number of rows and columns (5x5 grid)
 
 function GameScreen() {
   const [selectedDot, setSelectedDot] = useState(null);
   const [lines, setLines] = useState([]); // Tracks drawn lines
-  const [scores, setScores] = useState({ player1: 0, player2: 0 });
   const [currentPlayer, setCurrentPlayer] = useState(localStorage.getItem("turn") === localStorage.getItem("userName") ? 1 : 2);
   const [roomId, setRoomId] = useState(localStorage.getItem("roomId"));
   const [myTurn, setMyTurn] = useState(localStorage.getItem("turn") === localStorage.getItem("userName"));
   const [player1, setPlayer1] = useState(localStorage.getItem("player1"));
   const [player2, setPlayer2] = useState(localStorage.getItem("player2"));
-
+  const [scores, setScores] = useState({ player1: 0, player2: 0 });
+  const navigate = useNavigate()
   
   useEffect(() => {
+
+    socket.on("won",({message}) => {
+      alert(message)
+      navigate("/")
+    })
+
+    socket.on("lose",({message}) => {
+      alert(message)
+      navigate("/")
+    })
 
     socket.on("play-game", ({ turn, player1, player2, score1, score2 }) => {
       setPlayer1(player1);
       setPlayer2(player2);
       setScores({ player1: score1, player2: score2 });
       setMyTurn(turn === localStorage.getItem("userName"));
+      localStorage.setItem("turn",turn)
     });
 
     socket.on("move-played-square", ({ lines, scores,turn }) => {
@@ -30,6 +42,7 @@ function GameScreen() {
     });
 
     socket.on("update-game",({lines,scores,turn}) => {
+      localStorage.setItem("turn",turn)
       setLines(lines)
       setScores(scores)
       setMyTurn(turn === localStorage.getItem("userName"))
@@ -38,11 +51,14 @@ function GameScreen() {
     return () => {
       socket.off("play-game")
       socket.off("move-played-square")
+      socket.off("won")
+      socket.off("lose")
     }
 
   }, []);
 
   const handleDotClick = (row, col) => {
+    // debugger
     if (!myTurn) return; // Disable clicks if it's not the user's turn
 
     if (selectedDot) {
@@ -68,7 +84,11 @@ function GameScreen() {
         if (squaresCompleted > 0) {
           newScores[`player${currentPlayer}`] += squaresCompleted;
           setScores(newScores);
-
+          if(lines.length == ((GRID_SIZE * (GRID_SIZE - 1) * 2) - 1))
+          {
+            // alert(1)
+            socket.emit('game-completed',{scores,winner:localStorage.getItem("userName"),roomId})
+          }
           socket.emit("move-played-square", { lines: newLines, scores: newScores, roomId,userName: localStorage.getItem("userName") });
         } else {
           // Switch turn only if no square is completed
@@ -80,6 +100,7 @@ function GameScreen() {
         setSelectedDot(null); // Reset selection
       } else {
         setSelectedDot([row, col]); // Change selection
+        return;
       }
     } else {
       setSelectedDot([row, col]);

@@ -13,6 +13,7 @@ function LoadScreen() {
           localStorage.setItem("player2",data.player2)
           localStorage.setItem("score1",data.score1)
           localStorage.setItem("score2",data.score2)
+          localStorage.setItem("turn",data.turn)
             navigate('/game')
         })
 
